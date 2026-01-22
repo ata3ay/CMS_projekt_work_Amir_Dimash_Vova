@@ -1,70 +1,111 @@
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from scipy.stats import ttest_ind
 import numpy as np
+from matplotlib.ticker import FuncFormatter #for K with numbers
+
 
 df = pd.read_csv("DATA.csv")
 print(df.shape)
 print(df.columns)
-df.head()
+print(df.head())
 
-df["currency"].value_counts().head(10)
+def thousands_formatter(x, pos):
+    return f"{int(x/1000)}K"
 
-df1 = df[df["currency"] == "EUR"].copy()
-print(df1.shape)
 
-df1 = df1.dropna(subset=["salary", "years_experience"])
-df1 = df1[(df1["salary"] > 0) & (df1["years_experience"] >= 0)]
-print(df1.shape)
+def plots_by_experience_groups(df, currency):
+    # 1) Filter + clean
+    d = df[df["currency"] == currency].copy()
+    d = d.dropna(subset=["salary", "years_experience"])
+    d = d[(d["salary"] > 0) & (d["years_experience"] >= 0)]
 
-df1["exp_group"] = df1["years_experience"].apply(lambda x: "0-5" if x <= 5 else ">5")
-df1["exp_group"].value_counts()
+    # 2) Create groups
+    d["exp_group"] = np.where(d["years_experience"] <= 5, "0-5", ">5")
 
-summary = df1.groupby("exp_group")["salary"].agg(
-    n="count", mean="mean", median="median", std="std"
-)
-print(summary)
+    # 3) Split
+    d_low = d[d["exp_group"] == "0-5"].copy()
+    d_high = d[d["exp_group"] == ">5"].copy()
 
-# 5.2 Boxplot – visual check
-sns.boxplot(data=df1, x="exp_group", y="salary")
-plt.title("Salary by experience group (USD)")
-plt.show()
+    # Helper to show basic stats
+    def quick_stats(sub, name):
+        print(f"\n--- {currency} | Group {name} ---")
+        print("N =", len(sub))
+        print("Salary: mean =", sub["salary"].mean(), "median =", sub["salary"].median())
+        print("Experience: mean =", sub["years_experience"].mean(), "median =", sub["years_experience"].median())
 
-low = df1[df1["exp_group"] == "0-5"]["salary"].to_numpy()
-high = df1[df1["exp_group"] == ">5"]["salary"].to_numpy()
+    quick_stats(d_low, "0-5")
+    quick_stats(d_high, ">5")
 
-t_stat, p_val = ttest_ind(high, low, equal_var=False, alternative="greater")
-print("Welch t-test:")
-print("t =", t_stat)
-print("p =", p_val)
-print("mean diff (high-low) =", high.mean() - low.mean())
+    # ===== 0–5 years =====
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+    fig.suptitle(f"{currency}: Employees with 0–5 years of experience", fontsize=14)
 
-rng = np.random.default_rng(123)
-B = 10000
-
-boot_diff = np.empty(B)
-n_low, n_high = len(low), len(high)
-
-for i in range(B):
-    s_low = rng.choice(low, size=n_low, replace=True)
-    s_high = rng.choice(high, size=n_high, replace=True)
-    boot_diff[i] = s_high.mean() - s_low.mean()
-
-# 95% CI (percentile)
-ci_low, ci_high = np.percentile(boot_diff, [2.5, 97.5])
-boot_p = np.mean(boot_diff <= 0)   # для H1: diff > 0
-
-print("Bootstrap:")
-print("95% CI =", (ci_low, ci_high))
-print("bootstrap p-value =", boot_p)
-
-plt.hist(boot_diff, bins=50)
-plt.axvline(0, linestyle="--")
-plt.title("Bootstrap distribution: mean salary difference (>5 - 0-5)")
-plt.xlabel("Difference")
-plt.ylabel("Frequency")
-plt.show()
+    axes[0].hist(d_low["salary"], bins=25)
+    axes[0].set_title("Salary distribution")
+    axes[0].set_xlabel(f"Salary ({currency})")
+    axes[0].set_ylabel("Frequency")
+    axes[0].xaxis.set_major_formatter(FuncFormatter(thousands_formatter)) ##X achse 
 
 
 
+    axes[1].hist(d_low["years_experience"], bins=10)
+    axes[1].set_title("Experience distribution")
+    axes[1].set_xlabel("Years of experience")
+    axes[1].set_ylabel("Frequency")
+
+    # jittered salary vs experience (stripplot)
+    sns.stripplot(
+        data=d_low,
+        x="years_experience",
+        y="salary",
+        jitter=0.25,
+        alpha=0.7,
+        ax=axes[2]
+    )
+    axes[2].set_title("Salary vs experience (jittered)")
+    axes[2].set_xlabel("Years of experience")
+    axes[2].set_ylabel(f"Salary ({currency})")
+    axes[2].yaxis.set_major_formatter(FuncFormatter(thousands_formatter))
+
+
+    plt.tight_layout()
+    plt.show()
+
+    # ===== >5 years =====
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+    fig.suptitle(f"{currency}: Employees with >5 years of experience", fontsize=14)
+
+    axes[0].hist(d_high["salary"], bins=25)
+    axes[0].set_title("Salary distribution")
+    axes[0].set_xlabel(f"Salary ({currency})")
+    axes[0].set_ylabel("Frequency")
+    axes[0].xaxis.set_major_formatter(FuncFormatter(thousands_formatter)) ##X achse 
+
+    
+
+    axes[1].hist(d_high["years_experience"], bins=10)
+    axes[1].set_title("Experience distribution")
+    axes[1].set_xlabel("Years of experience")
+    axes[1].set_ylabel("Frequency")
+
+    sns.stripplot(
+        data=d_high,
+        x="years_experience",
+        y="salary",
+        jitter=0.25,
+        alpha=0.7,
+        ax=axes[2]
+    )
+    axes[2].set_title("Salary vs experience (jittered)")
+    axes[2].set_xlabel("Years of experience")
+    axes[2].set_ylabel(f"Salary ({currency})")
+    axes[2].yaxis.set_major_formatter(FuncFormatter(thousands_formatter))
+
+
+    plt.tight_layout()
+    plt.show()
+
+
+plots_by_experience_groups(df, "EUR")
+plots_by_experience_groups(df, "USD")
