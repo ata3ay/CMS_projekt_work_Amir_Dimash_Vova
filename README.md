@@ -6,7 +6,7 @@ The main research question is:
 
 **Do professionals with more than five years of experience earn more than those with less experience (0–5 years)?**
 
-The goal is to investigate whether work experience has a statistically significant effect on salary differences.
+The goal is to investigate whether work experience has a statistically significant effect on salary differences
 
 ---
 
@@ -39,10 +39,10 @@ The data is cleaned by:
 The following statistical methods are used:
 
 - **Two-sample t-test**  
-  to test whether the mean salaries of the two experience groups differ significantly.
+  to test whether the mean salaries of the two experience groups differ significantly
 
 - **Bootstrapping**  
-  to estimate confidence intervals for the difference in mean salaries and to validate the robustness of the results without relying on normality assumptions.
+  to estimate confidence intervals for the difference in mean salaries and to validate the robustness of the results without relying on normality assumptions
 
 ---
 
@@ -79,6 +79,6 @@ python cms_code.py
 
 ## Authors
 
-Dinmukhamed Atabay
-Amir Kazken 
-Vladimir Ovcharov
+Dinmukhamed Atabay,
+Amir Kazken,
+Vladimir Ovcharov.
