@@ -2,61 +2,89 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.ticker import FuncFormatter #for K with numbers
+from matplotlib.ticker import FuncFormatter  # for K formatting
 
 
-df = pd.read_csv("DATA.csv")
-print(df.shape)
-print(df.columns)
-print(df.head())
+# ===== Load data =====
+salary_data = pd.read_csv("DATA.csv")
 
-def thousands_formatter(x, pos):
-    return f"{int(x/1000)}K"
+print(salary_data.shape)
+print(salary_data.columns)
+print(salary_data.head())
 
 
-def plots_by_experience_groups(df, currency):
-    # 1) Filter + clean
-    d = df[df["currency"] == currency].copy()
-    d = d.dropna(subset=["salary", "years_experience"])
-    d = d[(d["salary"] > 0) & (d["years_experience"] >= 0)]
+# ===== Formatter for thousands (e.g. 50K) =====
+def format_thousands(value, position):
+    return f"{int(value / 1000)}K"
 
-    # 2) Create groups
-    d["exp_group"] = np.where(d["years_experience"] <= 5, "0-5", ">5")
 
-    # 3) Split
-    d_low = d[d["exp_group"] == "0-5"].copy()
-    d_high = d[d["exp_group"] == ">5"].copy()
+# ===== Main plotting function =====
+def plot_salary_by_experience_group(data, selected_currency):
 
-    # Helper to show basic stats
-    def quick_stats(sub, name):
-        print(f"\n--- {currency} | Group {name} ---")
-        print("N =", len(sub))
-        print("Salary: mean =", sub["salary"].mean(), "median =", sub["salary"].median())
-        print("Experience: mean =", sub["years_experience"].mean(), "median =", sub["years_experience"].median())
+    # 1) Filter and clean data
+    filtered_data = data[data["currency"] == selected_currency].copy()
+    filtered_data = filtered_data.dropna(subset=["salary", "years_experience"])
+    filtered_data = filtered_data[
+        (filtered_data["salary"] > 0) &
+        (filtered_data["years_experience"] >= 0)
+    ]
 
-    quick_stats(d_low, "0-5")
-    quick_stats(d_high, ">5")
+    # 2) Create experience groups
+    filtered_data["experience_group"] = np.where(
+        filtered_data["years_experience"] <= 5,
+        "0–5 years",
+        ">5 years"
+    )
 
-    # ===== 0–5 years =====
+    # 3) Split into groups
+    junior_employees = filtered_data[
+        filtered_data["experience_group"] == "0–5 years"
+    ].copy()
+
+    senior_employees = filtered_data[
+        filtered_data["experience_group"] == ">5 years"
+    ].copy()
+
+    # ===== Helper function for quick statistics =====
+    def print_basic_statistics(subset, group_name):
+        print(f"\n--- {selected_currency} | {group_name} ---")
+        print("Number of employees:", len(subset))
+        print(
+            "Salary → mean:",
+            subset["salary"].mean(),
+            "| median:",
+            subset["salary"].median()
+        )
+        print(
+            "Experience → mean:",
+            subset["years_experience"].mean(),
+            "| median:",
+            subset["years_experience"].median()
+        )
+
+    print_basic_statistics(junior_employees, "0–5 years")
+    print_basic_statistics(senior_employees, ">5 years")
+
+    # ===== 0–5 years group =====
     fig, axes = plt.subplots(1, 3, figsize=(15, 4))
-    fig.suptitle(f"{currency}: Employees with 0–5 years of experience", fontsize=14)
+    fig.suptitle(
+        f"{selected_currency}: Employees with 0–5 years of experience",
+        fontsize=14
+    )
 
-    axes[0].hist(d_low["salary"], bins=25)
+    axes[0].hist(junior_employees["salary"], bins=25)
     axes[0].set_title("Salary distribution")
-    axes[0].set_xlabel(f"Salary ({currency})")
+    axes[0].set_xlabel(f"Salary ({selected_currency})")
     axes[0].set_ylabel("Frequency")
-    axes[0].xaxis.set_major_formatter(FuncFormatter(thousands_formatter)) ##X achse 
+    axes[0].xaxis.set_major_formatter(FuncFormatter(format_thousands))
 
-
-
-    axes[1].hist(d_low["years_experience"], bins=10)
+    axes[1].hist(junior_employees["years_experience"], bins=10)
     axes[1].set_title("Experience distribution")
     axes[1].set_xlabel("Years of experience")
     axes[1].set_ylabel("Frequency")
 
-    # jittered salary vs experience (stripplot)
     sns.stripplot(
-        data=d_low,
+        data=junior_employees,
         x="years_experience",
         y="salary",
         jitter=0.25,
@@ -65,32 +93,32 @@ def plots_by_experience_groups(df, currency):
     )
     axes[2].set_title("Salary vs experience (jittered)")
     axes[2].set_xlabel("Years of experience")
-    axes[2].set_ylabel(f"Salary ({currency})")
-    axes[2].yaxis.set_major_formatter(FuncFormatter(thousands_formatter))
-
+    axes[2].set_ylabel(f"Salary ({selected_currency})")
+    axes[2].yaxis.set_major_formatter(FuncFormatter(format_thousands))
 
     plt.tight_layout()
     plt.show()
 
-    # ===== >5 years =====
+    # ===== >5 years group =====
     fig, axes = plt.subplots(1, 3, figsize=(15, 4))
-    fig.suptitle(f"{currency}: Employees with >5 years of experience", fontsize=14)
+    fig.suptitle(
+        f"{selected_currency}: Employees with more than 5 years of experience",
+        fontsize=14
+    )
 
-    axes[0].hist(d_high["salary"], bins=25)
+    axes[0].hist(senior_employees["salary"], bins=25)
     axes[0].set_title("Salary distribution")
-    axes[0].set_xlabel(f"Salary ({currency})")
+    axes[0].set_xlabel(f"Salary ({selected_currency})")
     axes[0].set_ylabel("Frequency")
-    axes[0].xaxis.set_major_formatter(FuncFormatter(thousands_formatter)) ##X achse 
+    axes[0].xaxis.set_major_formatter(FuncFormatter(format_thousands))
 
-    
-
-    axes[1].hist(d_high["years_experience"], bins=10)
+    axes[1].hist(senior_employees["years_experience"], bins=10)
     axes[1].set_title("Experience distribution")
     axes[1].set_xlabel("Years of experience")
     axes[1].set_ylabel("Frequency")
 
     sns.stripplot(
-        data=d_high,
+        data=senior_employees,
         x="years_experience",
         y="salary",
         jitter=0.25,
@@ -99,13 +127,13 @@ def plots_by_experience_groups(df, currency):
     )
     axes[2].set_title("Salary vs experience (jittered)")
     axes[2].set_xlabel("Years of experience")
-    axes[2].set_ylabel(f"Salary ({currency})")
-    axes[2].yaxis.set_major_formatter(FuncFormatter(thousands_formatter))
-
+    axes[2].set_ylabel(f"Salary ({selected_currency})")
+    axes[2].yaxis.set_major_formatter(FuncFormatter(format_thousands))
 
     plt.tight_layout()
     plt.show()
 
 
-plots_by_experience_groups(df, "EUR")
-plots_by_experience_groups(df, "USD")
+# ===== Run for both currencies =====
+plot_salary_by_experience_group(salary_data, "EUR")
+plot_salary_by_experience_group(salary_data, "USD")
