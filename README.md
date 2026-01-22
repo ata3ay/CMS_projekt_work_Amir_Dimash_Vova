@@ -38,7 +38,7 @@ The data is cleaned by:
 ## Methods
 The following statistical methods are used:
 
-- **Two-sample Welch t-test**  
+- **Two-sample t-test**  
   to test whether the mean salaries of the two experience groups differ significantly.
 
 - **Bootstrapping**  
@@ -71,9 +71,11 @@ CMS_Projekt/
 1. Install required Python packages:
 ```bash
 pip install pandas numpy scipy matplotlib seaborn
-
+```
 2. Run the analysis script:
+```
 python cms_code.py
+```
 
 ## Authors
 
